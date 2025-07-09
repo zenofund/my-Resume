@@ -632,7 +632,7 @@ const Dashboard: React.FC = () => {
         return (
           <div className="space-y-4 sm:space-y-6">
             <div className="text-center">
-              <h3 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-2">Analysis Complete!</h3>
+              <h3 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-gray-900 mb-2">Analysis Complete!</h3>
               <p className="text-sm sm:text-base text-gray-600">Here's your resume analysis results</p>
               {dashboardState.usedCachedResult && (
                 <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
@@ -842,9 +842,9 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
+    <div className="max-w-6xl mx-auto py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
       <div className="text-center mb-6 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Resume Analysis Dashboard</h1>
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-2">Resume Analysis Dashboard</h1>
         <p className="text-sm sm:text-base text-gray-600">Analyze your resume with AI-powered insights</p>
       </div>
 
