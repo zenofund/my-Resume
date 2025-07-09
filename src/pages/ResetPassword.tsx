@@ -140,7 +140,6 @@ const ResetPassword: React.FC = () => {
               <Key className="h-12 w-12 sm:h-16 sm:w-16 text-blue-600 mx-auto mb-4" />
             )}
             <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900">
               {success ? 'Password Updated!' : 'Reset Your Password'}
             </h2>
             <p className="mt-2 text-sm text-gray-600">
