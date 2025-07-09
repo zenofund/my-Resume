@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { analyzeResume, AnalysisResult } from '../lib/openai';
 import { extractTextFromFile, generateSHA256Hash, toSentenceCase } from '../lib/utils';
@@ -30,8 +30,23 @@ const Dashboard: React.FC = () => {
     usedCachedResult: false,
   });
 
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
   // Load state from sessionStorage
   const loadState = (): DashboardState => {
+    // Check if we have initial analysis result from history
+    if (location.state?.initialAnalysisResult) {
+      const initialState = getInitialState();
+      return {
+        ...initialState,
+        currentStep: 4,
+        analysisResult: location.state.initialAnalysisResult,
+        usedCachedResult: true
+      };
+    }
+    
     try {
       const savedState = sessionStorage.getItem(STORAGE_KEY);
       if (savedState) {
@@ -54,9 +69,14 @@ const Dashboard: React.FC = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  const { user } = useAuth();
-  const navigate = useNavigate();
+
+  // Clear location state after loading to prevent re-initialization
+  useEffect(() => {
+    if (location.state?.initialAnalysisResult) {
+      // Clear the state to prevent re-initialization on subsequent visits
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, navigate, location.pathname]);
 
   // Save state to sessionStorage whenever it changes
   useEffect(() => {
