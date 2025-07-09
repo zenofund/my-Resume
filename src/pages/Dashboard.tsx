@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { analyzeResume, AnalysisResult } from '../lib/openai';
-import { extractTextFromFile, generateSHA256Hash } from '../lib/utils';
+import { extractTextFromFile, generateSHA256Hash, toSentenceCase } from '../lib/utils';
 import { supabase } from '../lib/supabase';
 import { Upload, FileText, Brain, AlertCircle, CheckCircle, ArrowRight, TrendingUp, Loader2, X, Lock, Info } from 'lucide-react';
 
@@ -684,7 +684,7 @@ const Dashboard: React.FC = () => {
                     <div className="grid grid-cols-1 gap-2 sm:gap-3">
                       {dashboardState.analysisResult.job_keywords_detected.map((item, index) => (
                         <div key={index} className="flex items-center justify-between p-2 sm:p-3 rounded-lg border border-gray-100">
-                          <span className="text-sm sm:text-base text-gray-700 font-medium truncate mr-2">{item.keyword}</span>
+                          <span className="text-sm sm:text-base text-gray-700 font-medium truncate mr-2">{toSentenceCase(item.keyword)}</span>
                           <span className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 ${
                             item.status === 'Present' 
                               ? 'bg-green-100 text-green-800' 
