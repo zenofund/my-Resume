@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { analyzeResume, AnalysisResult } from '../lib/openai';
 import { extractTextFromFile, generateSHA256Hash, toSentenceCase } from '../lib/utils';
 import { supabase } from '../lib/supabase';
-import { Upload, FileText, Brain, AlertCircle, CheckCircle, ArrowRight, TrendingUp, Loader2, X, Lock, Info, Sparkles, Zap, Target } from 'lucide-react';
+import { Upload, FileText, Brain, AlertCircle, CheckCircle, ArrowRight, TrendingUp, Loader2, X, Lock, Info } from 'lucide-react';
 
 const STORAGE_KEY = 'zolla_dashboard_state';
 
@@ -19,6 +19,7 @@ interface DashboardState {
 }
 
 const Dashboard: React.FC = () => {
+  // Initialize state with default values
   const getInitialState = (): DashboardState => ({
     currentStep: 1,
     resumeText: '',
@@ -33,13 +34,17 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Load state from sessionStorage
   const loadState = (): DashboardState => {
+    // Check if we have initial analysis result from history
     if (location.state?.initialAnalysisResult) {
       const initialState = getInitialState();
       return {
         ...initialState,
         currentStep: 4,
         analysisResult: location.state.initialAnalysisResult,
+        resumeText: location.state.originalResumeText || '',
+        jobDescription: location.state.originalJobDescription || '',
         usedCachedResult: true
       };
     }
@@ -48,6 +53,7 @@ const Dashboard: React.FC = () => {
       const savedState = sessionStorage.getItem(STORAGE_KEY);
       if (savedState) {
         const parsedState = JSON.parse(savedState);
+        // Validate that the parsed state has the expected structure
         if (parsedState && typeof parsedState === 'object') {
           return {
             ...getInitialState(),
@@ -66,12 +72,15 @@ const Dashboard: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Clear location state after loading to prevent re-initialization
   useEffect(() => {
     if (location.state?.initialAnalysisResult) {
+      // Clear the state to prevent re-initialization on subsequent visits
       navigate(location.pathname, { replace: true, state: {} });
     }
   }, [location.state, navigate, location.pathname]);
 
+  // Save state to sessionStorage whenever it changes
   useEffect(() => {
     try {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(dashboardState));
@@ -80,10 +89,12 @@ const Dashboard: React.FC = () => {
     }
   }, [dashboardState]);
 
+  // Helper function to update dashboard state
   const updateState = (updates: Partial<DashboardState>) => {
     setDashboardState(prev => ({ ...prev, ...updates }));
   };
 
+  // Reset analysis and clear stored state
   const handleResetAnalysis = () => {
     try {
       sessionStorage.removeItem(STORAGE_KEY);
@@ -92,6 +103,7 @@ const Dashboard: React.FC = () => {
     }
     setDashboardState(getInitialState());
     setError(null);
+    // Reset the file input
     const fileInput = document.getElementById('resume-upload') as HTMLInputElement;
     if (fileInput) {
       fileInput.value = '';
@@ -173,6 +185,7 @@ const Dashboard: React.FC = () => {
   const handleRemoveFile = () => {
     updateState({ fileName: null, resumeText: '' });
     setError(null);
+    // Reset the file input
     const fileInput = document.getElementById('resume-upload') as HTMLInputElement;
     if (fileInput) {
       fileInput.value = '';
@@ -185,6 +198,7 @@ const Dashboard: React.FC = () => {
       return;
     }
 
+    // Check if job description is required
     const needsJobDescription = dashboardState.selectedAnalysisTypes.includes('job_match_analysis');
     if (needsJobDescription && !dashboardState.jobDescription.trim()) {
       setError('Please provide the job description for job match analysis.');
@@ -201,6 +215,7 @@ const Dashboard: React.FC = () => {
     updateState({ usedCachedResult: false });
 
     try {
+      // Generate hashes for deduplication (only if job description is provided)
       let resumeHash = '';
       let jobDescriptionHash = '';
       
@@ -208,6 +223,7 @@ const Dashboard: React.FC = () => {
         resumeHash = await generateSHA256Hash(dashboardState.resumeText);
         jobDescriptionHash = await generateSHA256Hash(dashboardState.jobDescription);
 
+        // Check for existing analysis with same content hashes
         const { data: existingAnalysis, error: queryError } = await supabase
           .from('resume_analyses')
           .select('compatibility_score, keyword_matches, experience_gaps, skill_gaps, analysis_details')
@@ -218,6 +234,7 @@ const Dashboard: React.FC = () => {
           .single();
 
         if (!queryError && existingAnalysis) {
+          // Use cached result
           const cachedResult: AnalysisResult = existingAnalysis.analysis_details || {
             match_summary: "This analysis was retrieved from your previous submission with the same resume and job description.",
             match_score: `${existingAnalysis.compatibility_score}/100`,
@@ -238,17 +255,20 @@ const Dashboard: React.FC = () => {
         }
       }
 
+      // Filter analysis types to only include non-premium ones for the API call
       const allowedAnalysisTypes = dashboardState.selectedAnalysisTypes.filter(type => 
         !analysisOptions.find(option => option.id === type)?.isPremium
       );
 
+      // No existing analysis found, proceed with new AI analysis
       const result = await analyzeResume(
         dashboardState.resumeText, 
         needsJobDescription ? dashboardState.jobDescription : '', 
-        allowedAnalysisTypes.filter(type => type !== 'job_match_analysis')
+        allowedAnalysisTypes.filter(type => type !== 'job_match_analysis') // Remove job_match_analysis as it's always included
       );
       updateState({ analysisResult: result });
 
+      // Save the new analysis with hashes for future deduplication
       if (needsJobDescription) {
         const numericScore = getNumericScore(result.match_score);
         const presentKeywords = result.job_keywords_detected
@@ -260,10 +280,12 @@ const Dashboard: React.FC = () => {
           compatibility_score: numericScore,
           keyword_matches: presentKeywords,
           experience_gaps: result.gaps_and_suggestions,
-          skill_gaps: [],
+          skill_gaps: [], // Empty array as new format combines all gaps
           resume_hash: resumeHash,
           job_description_hash: jobDescriptionHash,
           analysis_details: result,
+          original_resume_text: dashboardState.resumeText,
+          original_job_description: needsJobDescription ? dashboardState.jobDescription : null,
         });
       }
 
@@ -285,23 +307,27 @@ const Dashboard: React.FC = () => {
     });
   };
 
+  // Helper function to extract numeric score from match_score string
   const getNumericScore = (matchScore: string): number => {
     const match = matchScore.match(/(\d+)/);
     return match ? parseInt(match[1], 10) : 0;
   };
 
+  // Helper function to count issues found in analysis
   const getIssuesCount = () => {
     if (!dashboardState.analysisResult) return { total: 0, details: [] };
     
     const issues = [];
     let total = 0;
 
+    // ATS compatibility issues
     if (dashboardState.analysisResult.ats_compatibility?.issues?.length) {
       const count = dashboardState.analysisResult.ats_compatibility.issues.length;
       issues.push(`${count} ATS compatibility problem${count > 1 ? 's' : ''}`);
       total += count;
     }
 
+    // Missing keywords
     if (dashboardState.analysisResult.job_keywords_detected) {
       const missingCount = dashboardState.analysisResult.job_keywords_detected.filter(
         item => item.status === 'Missing'
@@ -312,33 +338,38 @@ const Dashboard: React.FC = () => {
       }
     }
 
+    // Weak impact statements
     if (dashboardState.analysisResult.impact_statement_review?.weak_statements?.length) {
       const count = dashboardState.analysisResult.impact_statement_review.weak_statements.length;
       issues.push(`${count} weak impact statement${count > 1 ? 's' : ''}`);
       total += count;
     }
 
+    // Skills gaps
     if (dashboardState.analysisResult.skills_gap_assessment?.missing_skills?.length) {
       const count = dashboardState.analysisResult.skills_gap_assessment.missing_skills.length;
       issues.push(`${count} skill gap${count > 1 ? 's' : ''}`);
       total += count;
     }
 
+    // Format issues
     if (dashboardState.analysisResult.format_optimization?.issues?.length) {
       const count = dashboardState.analysisResult.format_optimization.issues.length;
       issues.push(`${count} format issue${count > 1 ? 's' : ''}`);
       total += count;
     }
 
+    // Career story issues
     if (dashboardState.analysisResult.career_story_flow?.issues?.length) {
       const count = dashboardState.analysisResult.career_story_flow.issues.length;
       issues.push(`${count} career story issue${count > 1 ? 's' : ''}`);
       total += count;
     }
 
+    // General gaps and suggestions
     if (dashboardState.analysisResult.gaps_and_suggestions?.length) {
       const count = dashboardState.analysisResult.gaps_and_suggestions.length;
-      if (total === 0) {
+      if (total === 0) { // Only count these if no specific issues were found
         issues.push(`${count} improvement area${count > 1 ? 's' : ''}`);
         total += count;
       }
@@ -353,36 +384,36 @@ const Dashboard: React.FC = () => {
     switch (dashboardState.currentStep) {
       case 1:
         return (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             <div className="text-center">
-              <Upload className="h-12 w-12 text-blue-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Upload Your Resume</h3>
-              <p className="text-base text-gray-600">Upload your resume file or paste your resume text</p>
+              <Upload className="h-10 w-10 sm:h-12 sm:w-12 text-blue-600 mx-auto mb-3 sm:mb-4" />
+              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Upload Your Resume</h3>
+              <p className="text-sm sm:text-base text-gray-600">Upload your resume file or paste your resume text</p>
             </div>
 
-            <div className={`border-2 border-dashed rounded-xl p-8 text-center transition-all duration-300 ease-in-out transform hover:scale-[1.01] shadow-sm hover:shadow-md ${
+            <div className={`border-2 border-dashed rounded-lg p-6 sm:p-8 text-center transition-colors ${
               isUploading 
                 ? 'border-blue-400 bg-blue-50' 
                 : dashboardState.fileName 
                   ? 'border-green-400 bg-green-50' 
-                  : 'border-gray-300 hover:border-blue-400 bg-white'
+                  : 'border-gray-300 hover:border-blue-400'
             }`}>
               {isUploading ? (
                 <div className="flex flex-col items-center space-y-3">
-                  <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
-                  <span className="text-blue-600 font-medium text-base">Processing file...</span>
-                  <span className="text-sm text-gray-500">Extracting text from {dashboardState.fileName}</span>
+                  <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 animate-spin" />
+                  <span className="text-blue-600 font-medium text-sm sm:text-base">Processing file...</span>
+                  <span className="text-xs sm:text-sm text-gray-500">Extracting text from {dashboardState.fileName}</span>
                 </div>
               ) : dashboardState.fileName ? (
                 <div className="flex flex-col items-center space-y-3">
-                  <CheckCircle className="h-8 w-8 text-green-600" />
-                  <span className="text-green-600 font-medium text-base">File uploaded successfully!</span>
-                  <div className="flex items-center space-x-2 bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-sm max-w-full">
-                    <FileText className="h-5 w-5 text-gray-500 flex-shrink-0" />
-                    <span className="text-sm text-gray-700 truncate">{dashboardState.fileName}</span>
+                  <CheckCircle className="h-6 w-6 sm:h-8 sm:w-8 text-green-600" />
+                  <span className="text-green-600 font-medium text-sm sm:text-base">File uploaded successfully!</span>
+                  <div className="flex items-center space-x-2 bg-white px-3 py-2 rounded-lg border max-w-full">
+                    <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                    <span className="text-xs sm:text-sm text-gray-700 truncate">{dashboardState.fileName}</span>
                     <button
                       onClick={handleRemoveFile}
-                      className="text-red-500 hover:text-red-700 transition-colors flex-shrink-0 p-1 rounded-full hover:bg-red-50"
+                      className="text-red-500 hover:text-red-700 transition-colors flex-shrink-0"
                     >
                       <X className="h-4 w-4" />
                     </button>
@@ -399,30 +430,30 @@ const Dashboard: React.FC = () => {
                   />
                   <label
                     htmlFor="resume-upload"
-                    className="cursor-pointer flex flex-col items-center space-y-3"
+                    className="cursor-pointer flex flex-col items-center space-y-2"
                   >
-                    <FileText className="h-8 w-8 text-gray-400" />
-                    <span className="text-base text-gray-600 font-medium">Click to upload or drag and drop</span>
-                    <span className="text-sm text-gray-500">DOCX or TXT files only</span>
+                    <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-gray-400" />
+                    <span className="text-sm sm:text-base text-gray-600">Click to upload or drag and drop</span>
+                    <span className="text-xs sm:text-sm text-gray-500">DOCX or TXT files only</span>
                   </label>
                 </>
               )}
             </div>
 
-            <div className="text-center text-gray-500 font-semibold text-lg">
-              <span>or</span>
+            <div className="text-center text-gray-500">
+              <span className="text-sm sm:text-base">or</span>
             </div>
 
             <div>
-              <label htmlFor="resume-text" className="block text-base font-medium text-gray-700 mb-3">
+              <label htmlFor="resume-text" className="block text-sm font-medium text-gray-700 mb-2">
                 Paste your resume text here
               </label>
               <textarea
                 id="resume-text"
                 value={dashboardState.resumeText}
                 onChange={(e) => updateState({ resumeText: e.target.value })}
-                rows={10}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base shadow-sm"
+                rows={8}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                 placeholder="Paste your resume text here..."
               />
             </div>
@@ -430,7 +461,7 @@ const Dashboard: React.FC = () => {
             <button
               onClick={() => updateState({ currentStep: 2 })}
               disabled={!dashboardState.resumeText.trim() || isUploading}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3.5 px-4 rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.005]"
+              className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm sm:text-base"
             >
               {isUploading ? 'Processing...' : 'Next: Select Analysis Types'}
             </button>
@@ -439,55 +470,56 @@ const Dashboard: React.FC = () => {
 
       case 2:
         return (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             <div className="text-center">
-              <Brain className="h-12 w-12 text-purple-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">What would you like to analyze?</h3>
-              <p className="text-base text-gray-600">Select analysis types for comprehensive insights</p>
+              <Brain className="h-10 w-10 sm:h-12 sm:w-12 text-purple-600 mx-auto mb-3 sm:mb-4" />
+              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">What would you like to analyze?</h3>
+              <p className="text-sm sm:text-base text-gray-600">Select analysis types for comprehensive insights</p>
             </div>
 
-            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-lg">
-              <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <Info className="h-5 w-5 text-purple-600 mr-2" />
+            {/* Analysis Types Selection */}
+            <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+              <h4 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                <Info className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 mr-2" />
                 Analysis Options
               </h4>
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {analysisOptions.map((option) => (
-                  <div key={option.id} className="relative group">
-                    <label className={`flex items-start space-x-4 p-4 rounded-xl border cursor-pointer transition-all duration-200 ease-in-out transform group-hover:scale-[1.01] shadow-sm group-hover:shadow-md ${
+                  <div key={option.id} className="relative">
+                    <label className={`flex items-start space-x-3 p-3 sm:p-4 rounded-lg border cursor-pointer transition-colors ${
                       dashboardState.selectedAnalysisTypes.includes(option.id)
-                        ? 'border-purple-400 bg-purple-50' 
-                        : 'border-gray-200 bg-white hover:border-purple-200 hover:bg-purple-25'
+                        ? 'border-purple-300 bg-purple-50'
+                        : 'border-gray-200 hover:border-purple-200 hover:bg-purple-25'
                     } ${option.isPremium ? 'opacity-75' : ''}`}>
                       <input
                         type="checkbox"
                         checked={dashboardState.selectedAnalysisTypes.includes(option.id)}
                         onChange={() => handleAnalysisTypeChange(option.id)}
                         disabled={option.isPremium}
-                        className="mt-1 h-5 w-5 text-purple-600 focus:ring-purple-500 border-gray-300 rounded-md disabled:opacity-50"
+                        className="mt-1 h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded disabled:opacity-50"
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-2">
-                          <h5 className="font-medium text-gray-900 text-base">
+                          <h5 className="font-medium text-gray-900 text-sm sm:text-base">
                             {option.label}
                           </h5>
                           {option.isPremium && (
-                            <Lock className="h-4 w-4 text-orange-500" />
+                            <Lock className="h-3 w-3 sm:h-4 sm:w-4 text-orange-500" />
                           )}
                           {option.isCore && (
-                            <span className="text-xs bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full font-semibold">
+                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
                               Core
                             </span>
                           )}
                         </div>
-                        <p className="text-sm text-gray-600 mt-1">
+                        <p className="text-xs sm:text-sm text-gray-600 mt-1">
                           {option.description}
                         </p>
                       </div>
                     </label>
                     {option.isPremium && (
-                      <div className="absolute inset-0 bg-gray-100 bg-opacity-60 rounded-xl flex items-center justify-center">
-                        <span className="text-sm font-semibold text-gray-700 bg-white px-3 py-1.5 rounded-full border border-gray-300 shadow-md">
+                      <div className="absolute inset-0 bg-gray-100 bg-opacity-50 rounded-lg flex items-center justify-center">
+                        <span className="text-xs font-medium text-gray-600 bg-white px-2 py-1 rounded border">
                           Premium Feature
                         </span>
                       </div>
@@ -496,8 +528,8 @@ const Dashboard: React.FC = () => {
                 ))}
               </div>
               
-              <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
-                <p className="text-sm text-blue-800 flex items-start space-x-2">
+              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                <p className="text-xs sm:text-sm text-blue-800 flex items-start space-x-2">
                   <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
                   <span>
                     <strong>Tip:</strong> Select multiple options for comprehensive analysis. Premium features will be available after upgrading.
@@ -506,9 +538,10 @@ const Dashboard: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-gray-50 rounded-xl p-5 space-y-4 border border-gray-200 shadow-sm">
-              <h4 className="font-semibold text-gray-900 text-base">Analysis Summary</h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+            {/* Summary */}
+            <div className="bg-gray-50 rounded-lg p-4 sm:p-6 space-y-3 sm:space-y-4">
+              <h4 className="font-medium text-gray-900 text-sm sm:text-base">Analysis Summary</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
                 <div className="flex items-center space-x-2">
                   <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
                   <span className="text-gray-700">
@@ -532,10 +565,10 @@ const Dashboard: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+            <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
               <button
                 onClick={() => updateState({ currentStep: 1 })}
-                className="flex-1 bg-gray-200 text-gray-700 py-3.5 px-4 rounded-xl font-semibold hover:bg-gray-300 transition-colors duration-300 shadow-sm hover:shadow-md transform hover:scale-[1.005]"
+                className="flex-1 bg-gray-200 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-300 transition-colors text-sm sm:text-base"
               >
                 Back
               </button>
@@ -548,16 +581,16 @@ const Dashboard: React.FC = () => {
                   }
                 }}
                 disabled={dashboardState.selectedAnalysisTypes.length === 0}
-                className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3.5 px-4 rounded-xl font-semibold hover:from-purple-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.005] flex items-center justify-center space-x-2"
+                className="flex-1 bg-purple-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2 text-sm sm:text-base"
               >
                 {isJobMatchSelected ? (
                   <>
                     <span>Next: Add Job Description</span>
-                    <ArrowRight className="h-5 w-5" />
+                    <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
                   </>
                 ) : (
                   <>
-                    <Brain className="h-5 w-5" />
+                    <Brain className="h-4 w-4 sm:h-5 sm:w-5" />
                     <span>Analyze Resume</span>
                   </>
                 )}
@@ -568,47 +601,47 @@ const Dashboard: React.FC = () => {
 
       case 3:
         return (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             <div className="text-center">
-              <FileText className="h-12 w-12 text-purple-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Add Job Description</h3>
-              <p className="text-base text-gray-600">Paste the job description you want to apply for</p>
+              <FileText className="h-10 w-10 sm:h-12 sm:w-12 text-purple-600 mx-auto mb-3 sm:mb-4" />
+              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Add Job Description</h3>
+              <p className="text-sm sm:text-base text-gray-600">Paste the job description you want to apply for</p>
             </div>
 
             <div>
-              <label htmlFor="job-description" className="block text-base font-medium text-gray-700 mb-3">
+              <label htmlFor="job-description" className="block text-sm font-medium text-gray-700 mb-2">
                 Job Description
               </label>
               <textarea
                 id="job-description"
                 value={dashboardState.jobDescription}
                 onChange={(e) => updateState({ jobDescription: e.target.value })}
-                rows={12}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base shadow-sm"
+                rows={10}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                 placeholder="Paste the job description here..."
               />
             </div>
 
-            <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+            <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
               <button
                 onClick={() => updateState({ currentStep: 2 })}
-                className="flex-1 bg-gray-200 text-gray-700 py-3.5 px-4 rounded-xl font-semibold hover:bg-gray-300 transition-colors duration-300 shadow-sm hover:shadow-md transform hover:scale-[1.005]"
+                className="flex-1 bg-gray-200 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-300 transition-colors text-sm sm:text-base"
               >
                 Back
               </button>
               <button
                 onClick={handleAnalyze}
                 disabled={!dashboardState.jobDescription.trim() || isAnalyzing}
-                className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3.5 px-4 rounded-xl font-semibold hover:from-purple-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.005] flex items-center justify-center space-x-2"
+                className="flex-1 bg-purple-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2 text-sm sm:text-base"
               >
                 {isAnalyzing ? (
                   <>
-                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
                     <span>Analyzing...</span>
                   </>
                 ) : (
                   <>
-                    <Brain className="h-5 w-5" />
+                    <Brain className="h-4 w-4 sm:h-5 sm:w-5" />
                     <span>Analyze Resume</span>
                   </>
                 )}
@@ -621,60 +654,62 @@ const Dashboard: React.FC = () => {
         const issuesCount = getIssuesCount();
         
         return (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             <div className="text-center">
-              <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">Analysis Complete! 🎉</h3>
-              <p className="text-base text-gray-600">Here's your resume analysis results</p>
+              <h3 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-gray-900 mb-2">Analysis Complete!</h3>
+              <p className="text-sm sm:text-base text-gray-600">Here's your resume analysis results</p>
               {dashboardState.usedCachedResult && (
-                <div className="mt-3 inline-flex items-center px-4 py-1.5 rounded-full text-sm bg-blue-100 text-blue-800 font-medium border border-blue-200">
-                  <CheckCircle className="h-4 w-4 mr-2" />
+                <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                  <CheckCircle className="h-3 w-3 mr-1" />
                   Retrieved from previous analysis
                 </div>
               )}
             </div>
 
             {dashboardState.analysisResult && (
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
+                {/* Overall Analysis Score - only show if job match analysis was performed */}
                 {isJobMatchSelected && dashboardState.analysisResult.match_score && (
-                  <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-lg">
-                    <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                  <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
+                    <h4 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
                       Overall Analysis Score
                     </h4>
-                    <div className="flex items-center space-x-4 mb-4">
+                    <div className="flex items-center space-x-3 sm:space-x-4 mb-3 sm:mb-4">
                       <div className="flex-1">
-                        <div className="w-full bg-gray-200 rounded-full h-4">
+                        <div className="w-full bg-gray-200 rounded-full h-3 sm:h-4">
                           <div 
-                            className="bg-gradient-to-r from-blue-600 to-purple-600 h-4 rounded-full transition-all duration-500 ease-out"
+                            className="bg-gradient-to-r from-blue-600 to-purple-600 h-3 sm:h-4 rounded-full transition-all duration-500"
                             style={{ width: `${getNumericScore(dashboardState.analysisResult.match_score)}%` }}
                           ></div>
                         </div>
                       </div>
-                      <div className="text-3xl font-bold text-gray-900">
+                      <div className="text-2xl sm:text-3xl font-bold text-gray-900">
                         {dashboardState.analysisResult.match_score}
                       </div>
                     </div>
-                    <p className="text-sm text-gray-600">This score indicates how well your resume matches the job description.</p>
                   </div>
                 )}
 
+                {/* Match Summary - only show if job match analysis was performed */}
                 {isJobMatchSelected && dashboardState.analysisResult.match_summary && (
-                  <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-lg">
-                    <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                      <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
-                      Job Match Analysis Summary
+                  <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
+                    <h4 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4 flex items-center">
+                      <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-600 mr-2" />
+                      Job Match Analysis
                     </h4>
-                    <p className="text-base text-gray-700 leading-relaxed">{dashboardState.analysisResult.match_summary}</p>
+                    <p className="text-sm sm:text-base text-gray-700 leading-relaxed">{dashboardState.analysisResult.match_summary}</p>
                   </div>
                 )}
 
+                {/* Job Keywords Detected - only show if job match analysis was performed */}
                 {isJobMatchSelected && dashboardState.analysisResult.job_keywords_detected && (
-                  <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-lg">
-                    <h4 className="text-lg font-semibold text-gray-900 mb-4">Job Keywords Detected</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
+                    <h4 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Job Keywords Detected</h4>
+                    <div className="grid grid-cols-1 gap-2 sm:gap-3">
                       {dashboardState.analysisResult.job_keywords_detected.map((item, index) => (
-                        <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 bg-gray-50">
-                          <span className="text-base text-gray-700 font-medium truncate mr-2">{toSentenceCase(item.keyword)}</span>
-                          <span className={`px-3 py-1 rounded-full text-xs font-semibold flex-shrink-0 ${
+                        <div key={index} className="flex items-center justify-between p-2 sm:p-3 rounded-lg border border-gray-100">
+                          <span className="text-sm sm:text-base text-gray-700 font-medium truncate mr-2">{toSentenceCase(item.keyword)}</span>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 ${
                             item.status === 'Present' 
                               ? 'bg-green-100 text-green-800' 
                               : 'bg-red-100 text-red-800'
@@ -687,38 +722,40 @@ const Dashboard: React.FC = () => {
                   </div>
                 )}
 
+                {/* Gaps and Suggestions - only show if job match analysis was performed */}
                 {isJobMatchSelected && dashboardState.analysisResult.gaps_and_suggestions && (
-                  <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-lg">
-                    <h4 className="text-lg font-semibold text-gray-900 mb-4">Gaps and Suggestions</h4>
-                    <ul className="space-y-3">
+                  <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
+                    <h4 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Gaps and Suggestions</h4>
+                    <ul className="space-y-2 sm:space-y-3">
                       {dashboardState.analysisResult.gaps_and_suggestions.map((suggestion, index) => (
-                        <li key={index} className="flex items-start space-x-3">
-                          <AlertCircle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
-                          <span className="text-base text-gray-700">{suggestion}</span>
+                        <li key={index} className="flex items-start space-x-2 sm:space-x-3">
+                          <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600 mt-0.5 flex-shrink-0" />
+                          <span className="text-sm sm:text-base text-gray-700">{suggestion}</span>
                         </li>
                       ))}
                     </ul>
                   </div>
                 )}
 
+                {/* Additional Analysis Results */}
                 {dashboardState.analysisResult.ats_compatibility && (
-                  <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-lg">
-                    <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                      <CheckCircle className="h-5 w-5 text-blue-600 mr-2" />
+                  <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
+                    <h4 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4 flex items-center">
+                      <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 mr-2" />
                       ATS Compatibility ({dashboardState.analysisResult.ats_compatibility.score}/10)
                       {dashboardState.analysisResult.ats_compatibility.score < 7 && (
-                        <span className="ml-2 text-orange-600 font-medium">⚠️ Issues Found</span>
+                        <span className="ml-2 text-orange-600">⚠️ Issues Found</span>
                       )}
                     </h4>
-                    <p className="text-base text-gray-700 mb-4">{dashboardState.analysisResult.ats_compatibility.summary}</p>
+                    <p className="text-sm sm:text-base text-gray-700 mb-3">{dashboardState.analysisResult.ats_compatibility.summary}</p>
                     {dashboardState.analysisResult.ats_compatibility.issues.length > 0 && (
-                      <div className="space-y-3">
-                        <h5 className="font-medium text-gray-900 text-base">Issues Found:</h5>
-                        <ul className="space-y-2">
+                      <div className="space-y-2">
+                        <h5 className="font-medium text-gray-900 text-sm">Issues Found:</h5>
+                        <ul className="space-y-1">
                           {dashboardState.analysisResult.ats_compatibility.issues.map((issue, index) => (
-                            <li key={index} className="flex items-start space-x-3">
-                              <AlertCircle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
-                              <span className="text-base text-gray-700">{issue}</span>
+                            <li key={index} className="flex items-start space-x-2">
+                              <AlertCircle className="h-4 w-4 text-orange-600 mt-0.5 flex-shrink-0" />
+                              <span className="text-sm text-gray-700">{issue}</span>
                             </li>
                           ))}
                         </ul>
@@ -728,23 +765,23 @@ const Dashboard: React.FC = () => {
                 )}
 
                 {dashboardState.analysisResult.impact_statement_review && (
-                  <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-lg">
-                    <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                      <CheckCircle className="h-5 w-5 text-purple-600 mr-2" />
+                  <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
+                    <h4 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4 flex items-center">
+                      <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 mr-2" />
                       Impact Statement Review ({dashboardState.analysisResult.impact_statement_review.score}/10)
                       {dashboardState.analysisResult.impact_statement_review.score < 7 && (
-                        <span className="ml-2 text-orange-600 font-medium">🎯 Needs improvement</span>
+                        <span className="ml-2 text-orange-600">🎯 Needs improvement</span>
                       )}
                     </h4>
-                    <p className="text-base text-gray-700 mb-4">{dashboardState.analysisResult.impact_statement_review.summary}</p>
+                    <p className="text-sm sm:text-base text-gray-700 mb-3">{dashboardState.analysisResult.impact_statement_review.summary}</p>
                     {dashboardState.analysisResult.impact_statement_review.weak_statements.length > 0 && (
-                      <div className="space-y-3">
-                        <h5 className="font-medium text-gray-900 text-base">Weak Statements:</h5>
-                        <ul className="space-y-2">
+                      <div className="space-y-2">
+                        <h5 className="font-medium text-gray-900 text-sm">Weak Statements:</h5>
+                        <ul className="space-y-1">
                           {dashboardState.analysisResult.impact_statement_review.weak_statements.map((statement, index) => (
-                            <li key={index} className="flex items-start space-x-3">
-                              <AlertCircle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
-                              <span className="text-base text-gray-700">{statement}</span>
+                            <li key={index} className="flex items-start space-x-2">
+                              <AlertCircle className="h-4 w-4 text-orange-600 mt-0.5 flex-shrink-0" />
+                              <span className="text-sm text-gray-700">{statement}</span>
                             </li>
                           ))}
                         </ul>
@@ -753,50 +790,43 @@ const Dashboard: React.FC = () => {
                   </div>
                 )}
 
+                {/* Premium Value Proposition - Show for ALL analyses */}
                 {dashboardState.analysisResult && issuesCount.total > 0 && (
-                  <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-200 rounded-xl p-6 shadow-lg">
-                    <h4 className="text-xl font-bold text-gray-900 mb-3 flex items-center">
-                      <Sparkles className="h-6 w-6 text-yellow-500 mr-2" />
-                      Ready to Fix These Issues?
+                  <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-200 rounded-lg p-4 sm:p-6">
+                    <h4 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2 flex items-center">
+                      🎯 Ready to Fix These Issues?
                     </h4>
-                    <p className="text-base text-gray-700 mb-4">
+                    <p className="text-sm sm:text-base text-gray-700 mb-4">
                       Your analysis revealed {issuesCount.details.join(', ')}. Get an enhanced resume that addresses ALL these issues:
                     </p>
-                    <ul className="space-y-3 mb-5">
-                      <li className="flex items-center space-x-3 text-base">
-                        <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+                    <ul className="space-y-2 mb-4">
+                      <li className="flex items-center space-x-2 text-sm">
+                        <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
                         <span>✨ Rewritten impact statements with quantified results</span>
                       </li>
-                      <li className="flex items-center space-x-3 text-base">
-                        <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+                      <li className="flex items-center space-x-2 text-sm">
+                        <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
                         <span>✨ ATS-optimized formatting</span>
                       </li>
-                      <li className="flex items-center space-x-3 text-base">
-                        <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+                      <li className="flex items-center space-x-2 text-sm">
+                        <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
                         <span>✨ Strategic keyword integration</span>
                       </li>
-                      <li className="flex items-center space-x-3 text-base">
-                        <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+                      <li className="flex items-center space-x-2 text-sm">
+                        <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
                         <span>✨ Skills section optimization</span>
                       </li>
                     </ul>
-                    <button
-                      onClick={handleGetTailoredResume}
-                      className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3.5 px-4 rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.005] flex items-center justify-center space-x-2"
-                    >
-                      <Zap className="h-5 w-5" />
-                      <span>Get Enhanced Resume & Cover Letter</span>
-                      <ArrowRight className="h-5 w-5" />
-                    </button>
                   </div>
                 )}
 
+                {/* CTA - Show for ALL analyses */}
                 {dashboardState.analysisResult && (
-                  <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-6 text-white shadow-lg">
-                    <h4 className="text-xl font-bold mb-3">
+                  <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-4 sm:p-6 text-white">
+                    <h4 className="text-lg sm:text-xl font-semibold mb-2">
                       {isJobMatchSelected ? 'Want a Tailored Resume & Cover Letter?' : 'Ready to Enhance Your Resume?'}
                     </h4>
-                    <p className="mb-4 text-base">
+                    <p className="mb-3 sm:mb-4 text-sm sm:text-base">
                       {isJobMatchSelected 
                         ? 'Get a professionally optimized resume and compelling cover letter that matches this job description perfectly.'
                         : 'Get a professionally optimized resume and compelling cover letter that addresses all identified issues and enhances your job prospects.'
@@ -804,22 +834,23 @@ const Dashboard: React.FC = () => {
                     </p>
                     <button
                       onClick={handleGetTailoredResume}
-                      className="bg-white text-blue-600 py-3 px-5 rounded-xl font-semibold hover:bg-gray-100 transition-colors duration-300 shadow-md hover:shadow-lg flex items-center space-x-2 text-base"
+                      className="bg-white text-blue-600 py-2.5 sm:py-3 px-4 sm:px-6 rounded-lg font-semibold hover:bg-gray-100 transition-colors flex items-center space-x-2 text-sm sm:text-base"
                     >
                       <span>Get Enhanced Resume & Cover Letter</span>
-                      <ArrowRight className="h-5 w-5" />
+                      <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
                     </button>
                   </div>
                 )}
 
-                <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-6 text-center shadow-lg">
-                  <h4 className="text-xl font-bold text-gray-900 mb-3">Analysis Complete!</h4>
-                  <p className="text-base text-gray-600 mb-5">
+                {/* Analysis Complete Message */}
+                <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-4 sm:p-6 text-center">
+                  <h4 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Analysis Complete!</h4>
+                  <p className="text-sm sm:text-base text-gray-600 mb-4">
                     Your resume analysis is complete. Ready to analyze another resume or enhance this one?
                   </p>
                   <button
                     onClick={handleResetAnalysis}
-                    className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3.5 px-6 rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.005]"
+                    className="bg-blue-600 text-white py-2.5 sm:py-3 px-4 sm:px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-sm sm:text-base"
                   >
                     Analyze Another Resume
                   </button>
@@ -835,59 +866,55 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 py-12 sm:py-16">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-10 sm:mb-12">
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900 mb-3 leading-tight">
-            Resume Analysis <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">Dashboard</span>
-          </h1>
-          <p className="text-lg sm:text-xl text-gray-600">Analyze your resume with AI-powered insights</p>
-        </div>
+    <div className="max-w-6xl mx-auto py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
+      <div className="text-center mb-6 sm:mb-8">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-2">Resume Analysis Dashboard</h1>
+        <p className="text-sm sm:text-base text-gray-600">Analyze your resume with AI-powered insights</p>
+      </div>
 
-        <div className="mb-10 sm:mb-12 bg-white p-6 rounded-2xl shadow-xl border border-gray-100">
-          <div className="flex items-center justify-between relative mb-4">
-            {[1, 2, 3, 4].map((step) => (
-              <React.Fragment key={step}>
-                <div className="flex flex-col items-center flex-1">
-                  <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-bold text-lg sm:text-xl transition-all duration-300 ease-in-out transform ${
-                    step <= dashboardState.currentStep 
-                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' 
-                      : 'bg-gray-200 text-gray-600 border-2 border-gray-300'
-                  }`}>
-                    {step}
-                  </div>
-                </div>
-                {step < 4 && (
-                  <div className={`flex-1 h-1 mx-2 sm:mx-4 transition-all duration-300 ease-in-out ${
-                    step < dashboardState.currentStep ? 'bg-gradient-to-r from-blue-400 to-purple-400' : 'bg-gray-200'
-                  }`} />
-                )}
-              </React.Fragment>
-            ))}
-          </div>
-          <div className="flex justify-between mt-4 text-center">
-            <span className="flex-1 text-sm sm:text-base text-gray-700 font-medium">Upload</span>
-            <span className="flex-1 text-sm sm:text-base text-gray-700 font-medium">Analysis Types</span>
-            <span className="flex-1 text-sm sm:text-base text-gray-700 font-medium">Job Description</span>
-            <span className="flex-1 text-sm sm:text-base text-gray-700 font-medium">Results</span>
-          </div>
-        </div>
-
-        {error && (
-          <div className="mb-8 bg-red-50 border border-red-200 rounded-xl p-5 shadow-md animate-fade-in">
-            <div className="flex items-start">
-              <AlertCircle className="h-6 w-6 text-red-500 flex-shrink-0 mt-1" />
-              <div className="ml-4">
-                <h4 className="font-semibold text-red-800 text-lg mb-1">Error:</h4>
-                <p className="text-base text-red-700">{error}</p>
+      {/* Progress Bar */}
+      <div className="mb-6 sm:mb-8">
+        <div className="flex items-center justify-center space-x-2 sm:space-x-4">
+          {[1, 2, 3, 4].map((step) => (
+            <div key={step} className="flex items-center">
+              <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-semibold text-xs sm:text-sm ${
+                step <= dashboardState.currentStep 
+                  ? 'bg-blue-600 text-white' 
+                  : 'bg-gray-200 text-gray-600'
+              }`}>
+                {step}
               </div>
+              {step < 4 && (
+                <div className={`w-8 sm:w-16 h-1 mx-1 sm:mx-2 ${
+                  step < dashboardState.currentStep ? 'bg-blue-600' : 'bg-gray-200'
+                }`} />
+              )}
+            </div>
+          ))}
+        </div>
+        <div className="flex justify-center mt-3 sm:mt-4 space-x-4 sm:space-x-8">
+          <span className="text-xs sm:text-sm text-gray-600">Upload</span>
+          <span className="text-xs sm:text-sm text-gray-600">Analysis Types</span>
+          <span className="text-xs sm:text-sm text-gray-600">Job Description</span>
+          <span className="text-xs sm:text-sm text-gray-600">Results</span>
+        </div>
+      </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="mb-4 sm:mb-6 bg-red-50 border border-red-200 rounded-md p-3 sm:p-4">
+          <div className="flex">
+            <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-red-400 flex-shrink-0" />
+            <div className="ml-3">
+              <p className="text-xs sm:text-sm text-red-800">{error}</p>
             </div>
           </div>
-        )}
-
-        <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 lg:p-10 border border-gray-100">
-          {renderStep()}
         </div>
+      )}
+
+      {/* Step Content */}
+      <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:p-8">
+        {renderStep()}
       </div>
     </div>
   );
