@@ -364,13 +364,14 @@ export const generateTailoredResume = async (
 
 
 **Formatting requirements**:
-- Use ALL CAPS for section headers
-- Bullet points for achievements (hyphens or asterisks)
-- Consistent indentation and spacing
-- Single-space within sections, double-space between sections
-- No columns, tables, or graphics
-- Resume must be cleanly copy-pastable into Word or Google Docs with minimal editing
-- Output in plain text only — no Markdown, no HTML
+- Use Markdown formatting for better presentation
+- Use ## for main section headers (e.g., ## PROFESSIONAL EXPERIENCE)
+- Use ### for subsection headers (e.g., ### Job Title at Company Name)
+- Use **bold** for emphasis on important details
+- Use bullet points (-) for achievements and responsibilities
+- Use proper line breaks and spacing for readability
+- Ensure the content is ATS-friendly when converted to plain text
+- Structure content logically with clear hierarchy
   `;
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -483,6 +484,8 @@ export const generateCoverLetter = async (
     - Emphasize quantified achievements where possible
     - Create a compelling narrative that connects past experience to future potential
     - Be honest and authentic
+    - Use Markdown formatting for better presentation (e.g., **bold** for emphasis)
+    - Structure with proper paragraphs and line breaks
   `;
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
