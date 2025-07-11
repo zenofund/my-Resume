@@ -673,7 +673,7 @@ const Dashboard: React.FC = () => {
         return (
           <div className="space-y-4 sm:space-y-6">
             <div className="text-center">
-              <h3 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-gray-900 mb-2">Analysis Complete!</h3>
+              <h3 className="text-xl sm:text-2xl md:text-3xl font-semibold text-gray-900 mb-2">Analysis Complete!</h3>
               <p className="text-sm sm:text-base text-gray-600">Here's your resume analysis results</p>
               {dashboardState.usedCachedResult && (
                 <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
@@ -718,26 +718,35 @@ const Dashboard: React.FC = () => {
                   </div>
                 )}
 
-                {/* Job Keywords Detected - only show if job match analysis was performed */}
-                {isJobMatchSelected && dashboardState.analysisResult.job_keywords_detected && (
-                  <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
-                    <h4 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Job Keywords Detected</h4>
-                    <div className="grid grid-cols-1 gap-2 sm:gap-3">
-                      {dashboardState.analysisResult.job_keywords_detected.map((item, index) => (
-                        <div key={index} className="flex items-center justify-between p-2 sm:p-3 rounded-lg border border-gray-100">
-                          <span className="text-sm sm:text-base text-gray-700 font-medium truncate mr-2">{toSentenceCase(item.keyword)}</span>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 ${
-                            item.status === 'Present' 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-red-100 text-red-800'
-                          }`}>
-                            {item.status === 'Present' ? '✅ Present' : '❌ Missing'}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+{/* Job Keywords Detected - only show if job match analysis was performed */}
+{isJobMatchSelected && dashboardState.analysisResult.job_keywords_detected && (
+  <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
+    <h4 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Job Keywords Detected</h4>
+    <div className="grid grid-cols-1 gap-2 sm:gap-3">
+      {dashboardState.analysisResult.job_keywords_detected.map((item, index) => (
+        <div 
+          key={index} 
+          className={`p-2 sm:p-3 rounded-lg flex items-center justify-center sm:justify-between ${
+            item.status === 'Present' 
+              ? 'bg-green-100 border border-green-200'  // Darkened from green-50 to green-100
+              : 'bg-red-100 border border-red-200'     // Darkened from red-50 to red-100
+          }`}
+        >
+          <span className="text-sm sm:text-base text-gray-700 font-medium text-center sm:text-left">
+            {toSentenceCase(item.keyword)}
+          </span>
+          <span className={`hidden sm:block px-2 py-1 rounded-full text-xs font-medium ${
+            item.status === 'Present' 
+              ? 'bg-green-200 text-green-800'  // Darkened from green-100 to green-200
+              : 'bg-red-200 text-red-800'      // Darkened from red-100 to red-200
+          }`}>
+            {item.status === 'Present' ? '✅ Present' : '❌ Missing'}
+          </span>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
 
                 {/* Gaps and Suggestions - only show if job match analysis was performed */}
                 {isJobMatchSelected && dashboardState.analysisResult.gaps_and_suggestions && (
@@ -885,7 +894,7 @@ const Dashboard: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
       <div className="text-center mb-6 sm:mb-8">
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-2">Resume Analysis Dashboard</h1>
+        <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-2">Resume Analysis Dashboard</h3>
         <p className="text-sm sm:text-base text-gray-600">Analyze your resume with AI-powered insights</p>
       </div>
 
