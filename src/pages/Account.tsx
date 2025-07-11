@@ -532,49 +532,6 @@ export default Account;
                         </div>
                       </div>
                       
-                      <div className="relative" ref={openDropdownId === analysis.id ? dropdownRef : null}>
-                        <button
-                          onClick={() => toggleDropdown(analysis.id)}
-                          className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-                          aria-label="More actions"
-                        >
-                          <MoreVertical className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500" />
-                        </button>
-                        
-                        {openDropdownId === analysis.id && (
-                          <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
-                            <div className="py-1">
-                              {hasContent && !isExpired ? (
-                                <button
-                                  onClick={() => handleViewResume(analysis)}
-                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
-                                >
-                                  <Eye className="h-4 w-4 text-blue-600" />
-                                  <span>
-                                    {analysis.tailored_resume ? 'View Tailored Resume' : 'View Analysis Details'}
-                                  </span>
-                                </button>
-                              ) : null}
-                              
-                              {canUpgrade ? (
-                                <button
-                                  onClick={() => handleUpgradeAnalysis(analysis)}
-                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
-                                >
-                                  <TrendingUp className="h-4 w-4 text-orange-600" />
-                                  <span>Get Tailored Resume</span>
-                                </button>
-                              ) : null}
-                              
-                              {!hasContent && !canUpgrade ? (
-                                <div className="px-4 py-2 text-sm text-gray-500">
-                                  {isExpired ? 'Content expired' : 'No actions available'}
-                                </div>
-                              ) : null}
-                            </div>
-                          </div>
-                        )}
-                      </div>
                     </div>
                   </div>
                 );
