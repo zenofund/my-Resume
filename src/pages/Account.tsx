@@ -420,10 +420,6 @@ const Account: React.FC = () => {
                             <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
                             <span>{formatDate(analysis.created_at)}</span>
                           </div>
-                          <div className="text-xs sm:text-sm text-gray-500 flex items-center space-x-1">
-                            <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
-                            <span>{formatDate(analysis.created_at)}</span>
-                          </div>
                         </div>
                         
                         {/* Ellipsis button - always visible on mobile */}
@@ -496,42 +492,6 @@ const Account: React.FC = () => {
                           </span>
                         </div>
                       </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default Account;
-                          <div>
-                            <span className="text-gray-500">Score:</span>
-                            <span className="ml-1 font-medium text-gray-900">
-                              {analysis.compatibility_score}/100
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-gray-500">Keywords:</span>
-                            <span className="ml-1 font-medium text-gray-900">
-                              {analysis.keyword_matches.length}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-gray-500">Expires in:</span>
-                            <span className={`ml-1 font-medium ${
-                              isExpired ? 'text-red-600' : daysRemaining <= 7 ? 'text-orange-600' : 'text-gray-900'
-                            }`}>
-                              {isExpired ? 'Expired' : `${daysRemaining} days`}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      
                     </div>
                   </div>
                 );
