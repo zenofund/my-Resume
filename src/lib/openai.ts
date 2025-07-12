@@ -134,6 +134,8 @@ export const analyzeResume = async (
     JOB DESCRIPTION:
     ${jobDescription}
 
+    Your response MUST be a JSON object and contain nothing else.
+
     Please provide a JSON response with the following structure${selectedAnalysisTypes.length > 0 ? ' (include additional analysis sections as requested)' : ''}:
     {
       "match_summary": "Short paragraph summarizing the overall compatibility",
@@ -180,8 +182,6 @@ export const analyzeResume = async (
         "suggestions": ["Suggestion 1", "Suggestion 2"]
       }` : ''}
     }
-
-    Be concise but insightful. Write in plain, helpful English.
   `;
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
