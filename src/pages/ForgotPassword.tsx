@@ -78,7 +78,7 @@ const ForgotPassword: React.FC = () => {
         <div className="max-w-md w-full space-y-6 sm:space-y-8">
           <div className="text-center">
             <Mail className="h-12 w-12 sm:h-16 sm:w-16 text-blue-600 mx-auto mb-4" />
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
               {success ? 'Check your email' : 'Forgot your password?'}
             </h2>
             <p className="mt-2 text-sm text-gray-600">
@@ -122,11 +122,11 @@ const ForgotPassword: React.FC = () => {
             ) : (
               <form className="space-y-4 sm:space-y-6" onSubmit={handleSubmit(onSubmit)}>
                 {error && (
-                  <div className="bg-red-50 border border-red-200 rounded-md p-3 sm:p-4">
+                  <div className="bg-red-50 border-2 border-red-300 rounded-md p-3 sm:p-4 shadow-sm">
                     <div className="flex">
                       <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-red-400" />
                       <div className="ml-3">
-                        <p className="text-xs sm:text-sm text-red-800">{error}</p>
+                        <p className="text-xs sm:text-sm text-red-800 font-medium">{error}</p>
                       </div>
                     </div>
                   </div>

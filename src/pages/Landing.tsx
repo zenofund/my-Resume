@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, CheckCircle, FileText, Brain, CreditCard, MessageCircle, Heart, Info } from 'lucide-react';
 import AnalysisInfoModal from '../components/AnalysisInfoModal';
+import { trackWhatsAppSupport, trackExternalLink } from '../lib/analytics';
 
 const Landing: React.FC = () => {
   const [showAnalysisInfoModal, setShowAnalysisInfoModal] = useState(false);
@@ -10,6 +11,10 @@ const Landing: React.FC = () => {
     const phoneNumber = '2348135381616'; // Replace with your actual WhatsApp number
     const message = encodeURIComponent('Hi! I want to learn more about Zolla AI resume analysis.');
     const whatsappUrl = `https://wa.me/${phoneNumber}?text=${message}`;
+    
+    // Track WhatsApp support click
+    trackWhatsAppSupport();
+    
     window.open(whatsappUrl, '_blank');
   };
 
@@ -64,7 +69,7 @@ const Landing: React.FC = () => {
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-purple-300"> Zolla!</span>
               </h1>
               <p className="text-base sm:text-lg lg:text-xl text-white/90 mb-6 sm:mb-8 max-w-3xl mx-auto leading-relaxed px-4">
-                Use my Free AI Resume Analysis Tool to instantly improve your ATS score so you land more interviews.</p>
+                Use my Free AI Resume Analysis Tool and instantly improve your ATS score to land more interviews.</p>
                 <p className="text-base sm:text-lg lg:text-xl text-white/90 mb-6 sm:mb-8 max-w-3xl mx-auto leading-relaxed px-4">Upload your resume and job description to get a detailed AI-powered review—keyword matching, ATS optimization, action-driven impact tips—all for free.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4">
@@ -127,7 +132,7 @@ const Landing: React.FC = () => {
               </div>
               <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">AI Analysis</h3>
               <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
-                Our AI analyzes your resume against the job description for compatibility
+                Zolla analyzes your resume against the job description for compatibility
               </p>
             </div>
             
@@ -135,9 +140,9 @@ const Landing: React.FC = () => {
               <div className="w-12 h-12 sm:w-16 sm:h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
                 <CreditCard className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
               </div>
-              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">Get Tailored Resume</h3>
+              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">Tailored Resume</h3>
               <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
-                Get a professionally tailored resume optimized for the job
+                Optionally, get a professionally tailored resume optimized for the job
               </p>
             </div>
           </div>
@@ -219,6 +224,7 @@ const Landing: React.FC = () => {
               target="_blank" 
               rel="noopener noreferrer"
               className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
+              onClick={() => trackExternalLink('https://elxis.com.ng', 'eLxis')}
             >
               eLxis
             </a>

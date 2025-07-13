@@ -1,6 +1,8 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { usePageTracking } from './hooks/useAnalytics';
+import ScrollToTop from './components/ScrollToTop';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import Landing from './pages/Landing';
@@ -14,10 +16,18 @@ import Success from './pages/Success';
 import CoverLetterPage from './pages/CoverLetterPage';
 import Account from './pages/Account';
 
+// Component to handle page tracking
+const PageTracker: React.FC = () => {
+  usePageTracking();
+  return null;
+};
+
 function App() {
   return (
     <AuthProvider>
       <Router>
+        <ScrollToTop />
+        <PageTracker />
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />

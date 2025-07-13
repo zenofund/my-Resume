@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { User, Mail, MapPin, Camera, Clock, FileText, Eye, Loader2, AlertCircle, CheckCircle, TrendingUp, MoreVertical, ChevronDown } from 'lucide-react';
+import { User, Mail, MapPin, Camera, Clock, FileText, Eye, Loader2, AlertCircle, CheckCircle, TrendingUp, MoreVertical } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
-const ITEMS_PER_PAGE = 10;
 
 interface ResumeAnalysis {
   id: string;
@@ -25,13 +23,10 @@ const Account: React.FC = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<'profile' | 'history'>('profile');
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [resumeHistory, setResumeHistory] = useState<ResumeAnalysis[]>([]);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
   const [profileData, setProfileData] = useState({
     name: '',
     email: '',
@@ -69,61 +64,27 @@ const Account: React.FC = () => {
 
   useEffect(() => {
     if (activeTab === 'history') {
-      // Reset pagination when switching to history tab
-      setCurrentPage(0);
-      setResumeHistory([]);
-      setHasMore(true);
-      fetchResumeHistory(0, true);
+      fetchResumeHistory();
     }
   }, [activeTab]);
 
-  const fetchResumeHistory = async (page: number = currentPage, reset: boolean = false) => {
+  const fetchResumeHistory = async () => {
     if (!user) return;
 
-    if (reset) {
-      setIsLoading(true);
-    } else {
-      setIsLoadingMore(true);
-    }
-    
+    setIsLoading(true);
     try {
-      const startIndex = page * ITEMS_PER_PAGE;
-      const endIndex = startIndex + ITEMS_PER_PAGE - 1;
-      
       const { data, error } = await supabase
         .from('resume_analyses')
         .select('id, user_id, compatibility_score, keyword_matches, experience_gaps, tailored_resume, cover_letter, analysis_details, original_resume_text, original_job_description, created_at')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .range(startIndex, endIndex);
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
-      
-      const newData = data || [];
-      
-      if (reset) {
-        setResumeHistory(newData);
-      } else {
-        setResumeHistory(prev => [...prev, ...newData]);
-      }
-      
-      // Check if there are more items to load
-      setHasMore(newData.length === ITEMS_PER_PAGE);
-      setCurrentPage(page);
+      setResumeHistory(data || []);
     } catch (err) {
       setError('Failed to load resume history');
     } finally {
-      if (reset) {
-        setIsLoading(false);
-      } else {
-        setIsLoadingMore(false);
-      }
-    }
-  };
-
-  const handleLoadMore = () => {
-    if (!isLoadingMore && hasMore) {
-      fetchResumeHistory(currentPage + 1, false);
+      setIsLoading(false);
     }
   };
 
@@ -429,146 +390,113 @@ const Account: React.FC = () => {
               </button>
             </div>
           ) : (
-            <>
-              <div className="space-y-4">
-                {resumeHistory.map((analysis) => {
-                  const daysRemaining = getDaysRemaining(analysis.created_at);
-                  const isExpired = daysRemaining === 0;
-                  const hasContent = analysis.tailored_resume || analysis.analysis_details;
-                  const canUpgrade = analysis.original_resume_text && analysis.original_job_description && !analysis.tailored_resume && !isExpired;
-                  
-                  return (
-                    <div
-                      key={analysis.id}
-                      className={`border rounded-lg p-4 sm:p-6 transition-all duration-200 ${
-                        isExpired 
-                          ? 'border-red-200 bg-red-50' 
-                          : 'border-gray-200 hover:border-blue-300 hover:shadow-md'
-                      }`}
-                    >
-                      <div className="space-y-3">
-                        {/* Mobile: Title and ellipsis on same line */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3 mb-2">
-                            <div className="flex items-center space-x-2">
-                              <div className="w-3 h-3 sm:w-4 sm:h-4 bg-blue-600 rounded-full"></div>
-                              <span className="text-sm sm:text-base font-medium text-gray-900">
-                                Resume Analysis
-                              </span>
-                            </div>
-                            <div className="text-xs sm:text-sm text-gray-500 flex items-center space-x-1">
-                              <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
-                              <span>{formatDate(analysis.created_at)}</span>
-                            </div>
+            <div className="space-y-4">
+              {resumeHistory.map((analysis) => {
+                const daysRemaining = getDaysRemaining(analysis.created_at);
+                const isExpired = daysRemaining === 0;
+                const hasContent = analysis.tailored_resume || analysis.analysis_details;
+                const canUpgrade = analysis.original_resume_text && analysis.original_job_description && !analysis.tailored_resume && !isExpired;
+                
+                return (
+                  <div
+                    key={analysis.id}
+                    className={`border rounded-lg p-4 sm:p-6 transition-all duration-200 ${
+                      isExpired 
+                        ? 'border-red-200 bg-red-50' 
+                        : 'border-gray-200 hover:border-blue-300 hover:shadow-md'
+                    }`}
+                  >
+                    <div className="space-y-3">
+                      {/* Mobile: Title and ellipsis on same line */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3 mb-2">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-3 h-3 sm:w-3 sm:h-3 bg-blue-600 rounded-full"></div>
+                            <span className="text-sm sm:text-base font-medium text-gray-900">
+                              Resume Analysis
+                            </span>
                           </div>
-                          
-                          {/* Ellipsis button - always visible on mobile */}
-                          <div className="relative" ref={openDropdownId === analysis.id ? dropdownRef : null}>
-                            <button
-                              onClick={() => toggleDropdown(analysis.id)}
-                              className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-                              aria-label="More actions"
-                            >
-                              <MoreVertical className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500" />
-                            </button>
-                            
-                            {openDropdownId === analysis.id && (
-                              <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
-                                <div className="py-1">
-                                  {hasContent && !isExpired ? (
-                                    <button
-                                      onClick={() => handleViewResume(analysis)}
-                                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
-                                    >
-                                      <Eye className="h-4 w-4 text-blue-600" />
-                                      <span>
-                                        {analysis.tailored_resume ? 'View Tailored Resume' : 'View Analysis Details'}
-                                      </span>
-                                    </button>
-                                  ) : null}
-                                  
-                                  {canUpgrade ? (
-                                    <button
-                                      onClick={() => handleUpgradeAnalysis(analysis)}
-                                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
-                                    >
-                                      <TrendingUp className="h-4 w-4 text-orange-600" />
-                                      <span>Get Tailored Resume</span>
-                                    </button>
-                                  ) : null}
-                                  
-                                  {!hasContent && !canUpgrade ? (
-                                    <div className="px-4 py-2 text-sm text-gray-500">
-                                      {isExpired ? 'Content expired' : 'No actions available'}
-                                    </div>
-                                  ) : null}
-                                </div>
-                              </div>
-                            )}
+                          <div className="text-xs sm:text-sm text-gray-500 flex items-center space-x-1">
+                            <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
+                            <span>{formatDate(analysis.created_at)}</span>
                           </div>
                         </div>
                         
-                        {/* Stats grid - responsive layout */}
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4 text-xs sm:text-sm">
-                          <div>
-                            <span className="text-gray-500">Score:</span>
-                            <span className="ml-1 font-medium text-gray-900">
-                              {analysis.compatibility_score}/100
-                            </span>
-                          </div>
-                          {/* Hide Keywords on mobile, show on sm and up */}
-                          <div className="hidden sm:block">
-                            <span className="text-gray-500">Keywords:</span>
-                            <span className="ml-1 font-medium text-gray-900">
-                              {analysis.keyword_matches.length}
-                            </span>
-                          </div>
-                          <div className="col-span-1 sm:col-span-1">
-                            <span className="text-gray-500">Expires in:</span>
-                            <span className={`ml-1 font-medium ${
-                              isExpired ? 'text-red-600' : daysRemaining <= 7 ? 'text-orange-600' : 'text-gray-900'
-                            }`}>
-                              {isExpired ? 'Expired' : `${daysRemaining} days`}
-                            </span>
-                          </div>
+                        {/* Ellipsis button - always visible on mobile */}
+                        <div className="relative" ref={openDropdownId === analysis.id ? dropdownRef : null}>
+                          <button
+                            onClick={() => toggleDropdown(analysis.id)}
+                            className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                            aria-label="More actions"
+                          >
+                            <MoreVertical className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500" />
+                          </button>
+                          
+                          {openDropdownId === analysis.id && (
+                            <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                              <div className="py-1">
+                                {hasContent && !isExpired ? (
+                                  <button
+                                    onClick={() => handleViewResume(analysis)}
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+                                  >
+                                    <Eye className="h-4 w-4 text-blue-600" />
+                                    <span>
+                                      {analysis.tailored_resume ? 'View Tailored Resume' : 'View Analysis Details'}
+                                    </span>
+                                  </button>
+                                ) : null}
+                                
+                                {canUpgrade ? (
+                                  <button
+                                    onClick={() => handleUpgradeAnalysis(analysis)}
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
+                                  >
+                                    <TrendingUp className="h-4 w-4 text-orange-600" />
+                                    <span>Get Tailored Resume</span>
+                                  </button>
+                                ) : null}
+                                
+                                {!hasContent && !canUpgrade ? (
+                                  <div className="px-4 py-2 text-sm text-gray-500">
+                                    {isExpired ? 'Content expired' : 'No actions available'}
+                                  </div>
+                                ) : null}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Stats grid - responsive layout */}
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4 text-xs sm:text-sm">
+                        <div>
+                          <span className="text-gray-500">Score:</span>
+                          <span className="ml-1 font-medium text-gray-900">
+                            {analysis.compatibility_score}/100
+                          </span>
+                        </div>
+                        {/* Hide Keywords on mobile, show on sm and up */}
+                        <div className="hidden sm:block">
+                          <span className="text-gray-500">Keywords:</span>
+                          <span className="ml-1 font-medium text-gray-900">
+                            {analysis.keyword_matches.length}
+                          </span>
+                        </div>
+                        <div className="col-span-1 sm:col-span-1">
+                          <span className="text-gray-500">Expires in:</span>
+                          <span className={`ml-1 font-medium ${
+                            isExpired ? 'text-red-600' : daysRemaining <= 7 ? 'text-orange-600' : 'text-gray-900'
+                          }`}>
+                            {isExpired ? 'Expired' : `${daysRemaining} days`}
+                          </span>
                         </div>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-              
-              {/* Load More Button */}
-              {hasMore && (
-                <div className="mt-6 text-center">
-                  <button
-                    onClick={handleLoadMore}
-                    disabled={isLoadingMore}
-                    className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2 mx-auto text-sm sm:text-base"
-                  >
-                    {isLoadingMore ? (
-                      <>
-                        <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
-                        <span>Loading...</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>Load More</span>
-                        <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5" />
-                      </>
-                    )}
-                  </button>
-                </div>
-              )}
-              
-              {/* Show total count if there are items */}
-              {resumeHistory.length > 0 && (
-                <div className="mt-4 text-center text-xs sm:text-sm text-gray-500">
-                  Showing {resumeHistory.length} resume{resumeHistory.length !== 1 ? 's' : ''}
-                  {!hasMore && resumeHistory.length >= ITEMS_PER_PAGE && ' (all loaded)'}
-                </div>
-              )}
-            </>
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
       )}

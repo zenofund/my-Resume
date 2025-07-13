@@ -5,11 +5,14 @@ import { processPayment } from '../lib/paystack';
 import { generateTailoredResume, generateCoverLetter, performComprehensiveAnalysis } from '../lib/openai';
 import { supabase } from '../lib/supabase';
 import { formatCurrency } from '../lib/utils';
+import { trackPayment } from '../lib/analytics';
 import { CreditCard, CheckCircle, AlertCircle, Star, TrendingUp } from 'lucide-react';
+import TermsPrivacyModal from '../components/TermsPrivacyModal';
 
 const Premium: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showTermsModal, setShowTermsModal] = useState(false);
   const { user, refreshUserProfile } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -44,7 +47,7 @@ const Premium: React.FC = () => {
     try {
       await processPayment(
         user.email!,
-        5000,
+        2500,
         async (reference) => {
           try {
             // Perform comprehensive analysis with all premium features
@@ -76,9 +79,14 @@ const Premium: React.FC = () => {
               skill_gaps: [], // Empty array as new format combines all gaps
               tailored_resume: tailoredResult.tailored_resume,
               cover_letter: coverLetterResult?.cover_letter || null,
+              original_resume_text: resumeText,
+              original_job_description: jobDescription || null,
             });
 
             // Note: Removed the is_premium update - users pay per resume generation
+            
+            // Track successful payment
+            trackPayment(2500, 'NGN');
             
             navigate('/success', { 
               state: { 
@@ -107,11 +115,37 @@ const Premium: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
       <div className="text-center mb-6 sm:mb-8">
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-2">Get Your Tailored Resume & Cover Letter</h1>
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-2">Get Your Tailored Resume & Cover Letter</h1>
         <p className="text-sm sm:text-base text-gray-600">
           Unlock a professionally optimized resume and cover letter tailored to your job description
         </p>
       </div>
+
+      {/* Analysis Score - Full Width at Top */}
+      {analysisResult && (
+        <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 mb-6 sm:mb-8">
+          <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4 flex items-center">
+            <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 mr-2" />
+            Your Current Score
+          </h3>
+          <div className="flex items-center space-x-3 sm:space-x-4 mb-3 sm:mb-4">
+            <div className="flex-1">
+              <div className="w-full bg-gray-200 rounded-full h-2.5 sm:h-3">
+                <div 
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 h-2.5 sm:h-3 rounded-full"
+                  style={{ width: `${getNumericScore(analysisResult.match_score)}%` }}
+                ></div>
+              </div>
+            </div>
+            <div className="text-xl sm:text-2xl font-bold text-gray-900">
+              {analysisResult.match_score}
+            </div>
+          </div>
+          <p className="text-xs sm:text-sm text-gray-600">
+            Zolla AI will optimize your resume and create a compelling cover letter to achieve a higher compatibility score
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
         {/* Left Column - What You Get */}
@@ -169,31 +203,10 @@ const Premium: React.FC = () => {
             </ul>
           </div>
 
-          {analysisResult && (
-            <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
-              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4 flex items-center">
-                <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 mr-2" />
-                Your Current Score
-              </h3>
-              <div className="flex items-center space-x-3 sm:space-x-4 mb-3 sm:mb-4">
-                <div className="flex-1">
-                  <div className="w-full bg-gray-200 rounded-full h-2.5 sm:h-3">
-                    <div 
-                      className="bg-gradient-to-r from-blue-600 to-purple-600 h-2.5 sm:h-3 rounded-full"
-                      style={{ width: `${getNumericScore(analysisResult.match_score)}%` }}
-                    ></div>
-                  </div>
-                </div>
-                <div className="text-xl sm:text-2xl font-bold text-gray-900">
-                  {analysisResult.match_score}
-                </div>
-              </div>
-              <p className="text-xs sm:text-sm text-gray-600">
-                Zolla AI will optimize your resume and create a compelling cover letter to achieve a higher compatibility score
-              </p>
-            </div>
-          )}
+        </div>
 
+        {/* Right Column - Payment */}
+        <div className="space-y-4 sm:space-y-6">
           {/* Premium Features Highlight */}
           <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg shadow-lg p-4 sm:p-6">
             <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4 flex items-center">
@@ -225,17 +238,14 @@ const Premium: React.FC = () => {
               All premium analysis features are automatically included in your tailored resume generation.
             </p>
           </div>
-        </div>
 
-        {/* Right Column - Payment */}
-        <div className="space-y-4 sm:space-y-6">
           <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
             <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">
               Pricing
             </h3>
             <div className="text-center">
               <div className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
-                {formatCurrency(5000)}
+                {formatCurrency(2500)}
               </div>
               <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">
                 Per tailored resume{jobDescription && jobDescription.trim() ? ' & cover letter' : ''} package
@@ -288,17 +298,29 @@ const Premium: React.FC = () => {
               ) : (
                 <>
                   <CreditCard className="h-4 w-4 sm:h-5 sm:w-5" />
-                  <span>Get Enhanced Resume{jobDescription && jobDescription.trim() ? ' & Cover Letter' : ''} - {formatCurrency(5000)}</span>
+                  <span>Get Enhanced Resume{jobDescription && jobDescription.trim() ? ' & Cover Letter' : ''} - {formatCurrency(2500)}</span>
                 </>
               )}
             </button>
             
             <p className="text-xs text-gray-500 mt-3 sm:mt-4 text-center">
-              By proceeding, you agree to our terms of service and privacy policy
+              By proceeding, you agree to our{' '}
+              <button
+                onClick={() => setShowTermsModal(true)}
+                className="text-blue-600 hover:text-blue-800 underline font-medium"
+              >
+                terms of service and privacy policy
+              </button>
             </p>
           </div>
         </div>
       </div>
+
+      {/* Terms & Privacy Modal */}
+      <TermsPrivacyModal 
+        isOpen={showTermsModal} 
+        onClose={() => setShowTermsModal(false)} 
+      />
     </div>
   );
 };
