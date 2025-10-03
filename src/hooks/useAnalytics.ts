@@ -19,14 +19,12 @@ const getPageTitleFromPath = (pathname: string): string => {
     '/': 'Home',
     '/login': 'Login',
     '/signup': 'Sign Up',
-    '/dashboard': 'Dashboard',
-    '/premium': 'Premium',
-    '/success': 'Success',
+    '/chat': 'Chat',
     '/account': 'Account',
-    '/cover-letter': 'Cover Letter',
+    '/admin': 'Admin Dashboard',
     '/forgot-password': 'Forgot Password',
     '/reset-password': 'Reset Password',
   };
 
-  return pathMap[pathname] || 'Zolla - AI Resume Analysis';
+  return pathMap[pathname] || 'easyIA - AI-Powered Legal Assistant';
 };

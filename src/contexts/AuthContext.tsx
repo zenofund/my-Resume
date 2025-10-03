@@ -41,6 +41,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUserProfile(profile);
     } catch (error) {
       console.error('Failed to fetch user profile:', error);
+      // If profile doesn't exist, it will be created by the trigger
+      // Let's wait a moment and try again
+      setTimeout(async () => {
+        try {
+          const profile = await DatabaseService.getUserProfile(user.id);
+          setUserProfile(profile);
+        } catch (retryError) {
+          console.error('Failed to fetch user profile on retry:', retryError);
+        }
+      }, 1000);
     }
   };
 

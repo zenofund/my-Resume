@@ -121,41 +121,26 @@ const Account: React.FC = () => {
   const handleViewResume = (analysis: ResumeAnalysis) => {
     setOpenDropdownId(null); // Close dropdown
     if (analysis.tailored_resume && analysis.tailored_resume.trim()) {
-      // Navigate to success page with tailored resume
-      navigate('/success', {
+      // For now, navigate to chat page as success page doesn't exist in easyIA
+      navigate('/chat', {
         state: {
-          tailoredResume: analysis.tailored_resume,
-          improvements: ['Previously generated resume from your history'],
-          coverLetter: analysis.cover_letter,
-          coverLetterKeyPoints: analysis.cover_letter ? ['Previously generated cover letter from your history'] : null,
+          message: 'Viewing historical analysis',
           reference: `history-${analysis.id}`
         }
       });
     } else if (analysis.analysis_details) {
-      // Navigate to dashboard with analysis details
-      navigate('/dashboard', {
+      // Navigate to chat with analysis details
+      navigate('/chat', {
         state: {
-          initialAnalysisResult: analysis.analysis_details,
-          originalResumeText: analysis.original_resume_text,
-          originalJobDescription: analysis.original_job_description,
+          message: 'Viewing historical analysis details',
           fromHistory: true
         }
       });
     } else {
-      // Fallback: navigate to dashboard with basic analysis info
-      navigate('/dashboard', {
+      // Fallback: navigate to chat with basic analysis info
+      navigate('/chat', {
         state: {
-          initialAnalysisResult: {
-            match_summary: "This is a historical analysis from your account.",
-            match_score: `${analysis.compatibility_score}/100`,
-            job_keywords_detected: analysis.keyword_matches.map(keyword => ({
-              keyword,
-              status: 'Present' as const
-            })),
-            gaps_and_suggestions: analysis.experience_gaps || []
-          },
-          originalResumeText: analysis.original_resume_text,
-          originalJobDescription: analysis.original_job_description,
+          message: 'Viewing historical analysis',
           fromHistory: true
         }
       });
@@ -164,24 +149,8 @@ const Account: React.FC = () => {
 
   const handleUpgradeAnalysis = (analysis: ResumeAnalysis) => {
     setOpenDropdownId(null); // Close dropdown
-    if (analysis.original_resume_text && analysis.original_job_description) {
-      // Navigate to premium page with original texts and analysis
-      navigate('/premium', {
-        state: {
-          resumeText: analysis.original_resume_text,
-          jobDescription: analysis.original_job_description,
-          analysisResult: analysis.analysis_details || {
-            match_summary: "Historical analysis from your account.",
-            match_score: `${analysis.compatibility_score}/100`,
-            job_keywords_detected: analysis.keyword_matches.map(keyword => ({
-              keyword,
-              status: 'Present' as const
-            })),
-            gaps_and_suggestions: analysis.experience_gaps || []
-          }
-        }
-      });
-    }
+    // For now, just navigate to chat as premium upgrade flow will be implemented later
+    navigate('/chat');
   };
 
   const toggleDropdown = (analysisId: string) => {
@@ -413,7 +382,7 @@ const Account: React.FC = () => {
                           <div className="flex items-center space-x-2">
                             <div className="w-3 h-3 sm:w-3 sm:h-3 bg-blue-600 rounded-full"></div>
                             <span className="text-sm sm:text-base font-medium text-gray-900">
-                              Resume Analysis
+                              Document Analysis
                             </span>
                           </div>
                           <div className="text-xs sm:text-sm text-gray-500 flex items-center space-x-1">

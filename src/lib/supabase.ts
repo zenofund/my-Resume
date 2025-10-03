@@ -17,9 +17,9 @@ export interface User {
   name?: string;
   address?: string;
   profile_picture_url?: string;
-  preferences: Record<string, any>;
-  last_active: string;
-  practice_areas: string[];
+  preferences?: Record<string, any>;
+  last_active?: string;
+  practice_areas?: string[];
   created_at: string;
   updated_at: string;
 }
