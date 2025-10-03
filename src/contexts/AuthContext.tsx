@@ -1,10 +1,10 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User as SupabaseUser, AuthError, Session } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
+import { supabase, User, DatabaseService } from '../lib/supabase';
 
 interface AuthContextType {
   user: SupabaseUser | null;
-  userProfile: any | null;
+  userProfile: User | null;
   loading: boolean;
   signUp: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
@@ -30,20 +30,17 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<SupabaseUser | null>(null);
-  const [userProfile, setUserProfile] = useState<any | null>(null);
+  const [userProfile, setUserProfile] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   const refreshUserProfile = async () => {
     if (!user) return;
     
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', user.id)
-      .single();
-
-    if (!error && data) {
-      setUserProfile(data);
+    try {
+      const profile = await DatabaseService.getUserProfile(user.id);
+      setUserProfile(profile);
+    } catch (error) {
+      console.error('Failed to fetch user profile:', error);
     }
   };
 
