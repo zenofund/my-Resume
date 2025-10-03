@@ -1,15 +1,12 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CheckCircle, FileText, Brain, CreditCard, MessageCircle, Heart, Info } from 'lucide-react';
-import AnalysisInfoModal from '../components/AnalysisInfoModal';
+import { ArrowRight, CheckCircle, Scale, MessageSquare, Users, MessageCircle, Heart } from 'lucide-react';
 import { trackWhatsAppSupport, trackExternalLink } from '../lib/analytics';
 
 const Landing: React.FC = () => {
-  const [showAnalysisInfoModal, setShowAnalysisInfoModal] = useState(false);
-
   const handleWhatsAppSupport = () => {
     const phoneNumber = '2348135381616'; // Replace with your actual WhatsApp number
-    const message = encodeURIComponent('Hi! I want to learn more about Zolla AI resume analysis.');
+    const message = encodeURIComponent('Hi! I want to learn more about easyIA legal assistant.');
     const whatsappUrl = `https://wa.me/${phoneNumber}?text=${message}`;
     
     // Track WhatsApp support click
@@ -26,7 +23,7 @@ const Landing: React.FC = () => {
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
-            backgroundImage: 'url(https://images.pexels.com/photos/1103970/pexels-photo-1103970.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2)'
+            backgroundImage: 'url(https://images.pexels.com/photos/5668882/pexels-photo-5668882.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2)'
           }}
         />
         
@@ -38,8 +35,8 @@ const Landing: React.FC = () => {
           <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
             <div className="flex justify-between items-center h-14 sm:h-16">
               <Link to="/" className="flex items-center space-x-2">
-                <img src="/am_fav.png" alt="Zolla Logo" className="h-6 w-6 sm:h-8 sm:w-8" />
-                <span className="text-lg sm:text-xl font-bold text-white">Zolla</span>
+                <img src="/easyia-favicon.png" alt="easyIA Logo" className="h-6 w-6 sm:h-8 sm:w-8" />
+                <span className="text-lg sm:text-xl font-bold text-white">easyIA</span>
               </Link>
               
               <div className="flex items-center space-x-2 sm:space-x-4">
@@ -65,19 +62,18 @@ const Landing: React.FC = () => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-24">
             <div className="text-center">
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 sm:mb-6 leading-tight">
-                Hi, I'm
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-purple-300"> Zolla!</span>
+                Meet
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-purple-300"> easyIA</span>
               </h1>
               <p className="text-base sm:text-lg lg:text-xl text-white/90 mb-6 sm:mb-8 max-w-3xl mx-auto leading-relaxed px-4">
-                Use my Free AI Resume Analysis Tool and instantly improve your ATS score to land more interviews.</p>
-                <p className="text-base sm:text-lg lg:text-xl text-white/90 mb-6 sm:mb-8 max-w-3xl mx-auto leading-relaxed px-4">Upload your resume and job description to get a detailed AI-powered review—keyword matching, ATS optimization, action-driven impact tips—all for free.
+                Your AI-powered legal research assistant for Nigerian law. Chat with legal documents, get instant case citations, and access comprehensive legal research tools.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4">
                 <Link
                   to="/signup"
                   className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 sm:px-8 py-3 sm:py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center justify-center space-x-2 text-sm sm:text-base shadow-lg"
                 >
-                  <span>Start Free Analysis</span>
+                  <span>Start Free Research</span>
                   <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
                 </Link>
                 <Link
@@ -86,17 +82,6 @@ const Landing: React.FC = () => {
                 >
                   <span>Sign In</span>
                 </Link>
-              </div>
-              
-              {/* Analysis Info Link */}
-              <div className="mt-4 sm:mt-6">
-                <button
-                  onClick={() => setShowAnalysisInfoModal(true)}
-                  className="text-white/80 hover:text-white text-sm sm:text-base underline underline-offset-4 transition-colors flex items-center justify-center space-x-1 mx-auto"
-                >
-                  <Info className="h-4 w-4" />
-                  <span>How Zolla Analyzes Your Resume</span>
-                </button>
               </div>
             </div>
           </div>
@@ -118,31 +103,31 @@ const Landing: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
             <div className="text-center p-6 sm:p-8 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100">
               <div className="w-12 h-12 sm:w-16 sm:h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
-                <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+                <Scale className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
               </div>
-              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">Upload Resume</h3>
+              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">Upload Documents</h3>
               <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
-                Upload your resume in DOCX format or paste your resume text directly
+                Upload Nigerian legal documents in PDF or DOCX format for AI analysis
               </p>
             </div>
             
             <div className="text-center p-6 sm:p-8 rounded-xl bg-gradient-to-br from-purple-50 to-purple-100">
               <div className="w-12 h-12 sm:w-16 sm:h-16 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
-                <Brain className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+                <MessageSquare className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
               </div>
-              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">AI Analysis</h3>
+              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">AI Chat</h3>
               <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
-                Zolla analyzes your resume against the job description for compatibility
+                Chat with your legal documents and get instant answers with proper citations
               </p>
             </div>
             
             <div className="text-center p-6 sm:p-8 rounded-xl bg-gradient-to-br from-green-50 to-green-100">
               <div className="w-12 h-12 sm:w-16 sm:h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
-                <CreditCard className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+                <Users className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
               </div>
-              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">Tailored Resume</h3>
+              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">Legal Research</h3>
               <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
-                Optionally, get a professionally tailored resume optimized for the job
+                Access comprehensive legal research tools and case law databases
               </p>
             </div>
           </div>
@@ -155,37 +140,37 @@ const Landing: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-16 items-center">
             <div className="order-2 lg:order-1">
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4 sm:mb-6">
-                Why Choose Zolla?
+                Why Choose easyIA?
               </h2>
               <ul className="space-y-3 sm:space-y-4">
                 <li className="flex items-start space-x-3">
                   <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 mt-1 flex-shrink-0" />
                   <span className="text-sm sm:text-base lg:text-lg text-gray-700">
-                    <strong>Instant Analysis:</strong> Get your compatibility score in seconds
+                    <strong>Instant Answers:</strong> Get legal answers with proper citations in seconds
                   </span>
                 </li>
                 <li className="flex items-start space-x-3">
                   <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 mt-1 flex-shrink-0" />
                   <span className="text-sm sm:text-base lg:text-lg text-gray-700">
-                    <strong>Keyword Matching:</strong> See which keywords you're missing
+                    <strong>Nigerian Law Focus:</strong> Specialized in Nigerian case law and statutes
                   </span>
                 </li>
                 <li className="flex items-start space-x-3">
                   <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 mt-1 flex-shrink-0" />
                   <span className="text-sm sm:text-base lg:text-lg text-gray-700">
-                    <strong>Gap Analysis:</strong> Identify experience and skill gaps
+                    <strong>Smart Citations:</strong> Automatic case law citations with clickable metadata
                   </span>
                 </li>
                 <li className="flex items-start space-x-3">
                   <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 mt-1 flex-shrink-0" />
                   <span className="text-sm sm:text-base lg:text-lg text-gray-700">
-                    <strong>Tailored Resume & Cover Letter:</strong> Get a professionally optimized resume
+                    <strong>Document Chat:</strong> Upload and chat with your legal documents
                   </span>
                 </li>
                 <li className="flex items-start space-x-3">
                   <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 mt-1 flex-shrink-0" />
                   <span className="text-sm sm:text-base lg:text-lg text-gray-700">
-                    <strong>Instant Download:</strong> Download your tailored resume immediately
+                    <strong>Team Collaboration:</strong> Share research and collaborate with your team
                   </span>
                 </li>
               </ul>
@@ -196,14 +181,14 @@ const Landing: React.FC = () => {
                 Ready to get started?
               </h3>
               <p className="text-sm sm:text-base text-gray-600 mb-6 sm:mb-8 leading-relaxed">
-                Join thousands of job seekers who have improved their resumes with Zolla
+                Join legal professionals who are transforming their research with easyIA
               </p>
               <div className="space-y-3">
                 <Link
                   to="/signup"
                   className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-colors flex items-center justify-center space-x-2 text-sm sm:text-base"
                 >
-                  <span>Start Your Free Analysis</span>
+                  <span>Start Your Free Research</span>
                   <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
                 </Link>
               </div>
@@ -251,12 +236,6 @@ const Landing: React.FC = () => {
           <div className="absolute inset-0 rounded-full bg-green-400 animate-ping opacity-20"></div>
         </button>
       </div>
-
-      {/* Analysis Info Modal */}
-      <AnalysisInfoModal 
-        isOpen={showAnalysisInfoModal} 
-        onClose={() => setShowAnalysisInfoModal(false)} 
-      />
     </div>
   );
 };

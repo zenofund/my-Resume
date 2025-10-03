@@ -1,5 +1,7 @@
 import mammoth from 'mammoth';
 
+// Keep only generic utilities that can be reused in the legal chatbot
+
 export const extractTextFromFile = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const fileType = file.type;
@@ -36,11 +38,11 @@ export const extractTextFromFile = (file: File): Promise<string> => {
       // Older Word format not supported
       reject(new Error('DOC files (older Word format) are not supported. Please save your document as DOCX or copy-paste the text.'));
     } else if (fileName.endsWith('.pdf')) {
-      // PDF files not supported
-      reject(new Error('PDF files are not supported. Please convert to DOCX or copy-paste your resume text.'));
+      // PDF files not supported yet - will be implemented later
+      reject(new Error('PDF files are not supported yet. Please convert to DOCX or copy-paste your document text.'));
     } else {
       // Unsupported file type
-      reject(new Error('Unsupported file type. Please upload a DOCX or TXT file, or copy-paste your resume text.'));
+      reject(new Error('Unsupported file type. Please upload a DOCX or TXT file, or copy-paste your document text.'));
     }
   });
 };
@@ -82,7 +84,7 @@ export const copyToClipboard = async (text: string): Promise<boolean> => {
   }
 };
 
-// Convert Markdown to plain text for ATS compatibility
+// Convert Markdown to plain text for better readability
 export const markdownToPlainText = (markdown: string): string => {
   return markdown
     // Remove markdown headers
@@ -141,4 +143,21 @@ export const generateSHA256Hash = async (text: string): Promise<string> => {
     // Fallback: use a simple hash if crypto.subtle is not available
     return btoa(text.trim().toLowerCase()).replace(/[^a-zA-Z0-9]/g, '');
   }
+};
+
+// Format date for display
+export const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
+
+// Truncate text to specified length
+export const truncateText = (text: string, maxLength: number): string => {
+  if (text.length <= maxLength) return text;
+  return text.substring(0, maxLength).trim() + '...';
 };

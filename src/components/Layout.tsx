@@ -1,6 +1,6 @@
 import React, { ReactNode } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { LogOut, User, MessageCircle, Home } from 'lucide-react';
+import { LogOut, User, MessageCircle, MessageSquare } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { trackWhatsAppSupport, trackExternalLink } from '../lib/analytics';
 
@@ -27,7 +27,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const handleWhatsAppSupport = () => {
     const phoneNumber = '2348135381616'; // Replace with your actual WhatsApp number
-    const message = encodeURIComponent('Hi! I need help with Zolla AI resume analysis.');
+    const message = encodeURIComponent('Hi! I need help with easyIA legal assistant.');
     const whatsappUrl = `https://wa.me/${phoneNumber}?text=${message}`;
     
     // Track WhatsApp support click
@@ -42,21 +42,21 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
           <div className="flex justify-between items-center h-14 sm:h-16">
             <Link to="/" className="flex items-center space-x-2">
-              <img src="/am_fav.png" alt="Zolla Logo" className="h-6 w-6 sm:h-8 sm:w-8" />
-              <span className="text-lg sm:text-xl font-bold text-gray-900">Zolla</span>
+              <img src="/easyia-favicon.png" alt="easyIA Logo" className="h-6 w-6 sm:h-8 sm:w-8" />
+              <span className="text-lg sm:text-xl font-bold text-gray-900">easyIA</span>
             </Link>
             
             {user && (
               <div className="flex items-center space-x-2 sm:space-x-4">
                 <Link 
-                  to="/dashboard" 
+                  to="/chat" 
                   className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-colors ${
-                    location.pathname === '/dashboard' 
+                    location.pathname === '/chat' 
                       ? 'bg-blue-100 text-blue-700' 
                       : 'text-gray-700 hover:text-blue-600'
                   }`}
                 >
-                  Dashboard
+                  Chat
                 </Link>
                 <Link 
                   to="/account" 
@@ -95,7 +95,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <footer className="bg-gray-900 text-white py-6 sm:py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <p className="text-[10px] text-gray-400">
-            Zolla Ver. 1.0.2 by{' '}
+            easyIA Ver. 1.0.0 by{' '}
             <a 
               href="https://elxis.com.ng" 
               target="_blank" 
@@ -114,15 +114,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="fixed bottom-0 left-0 right-0 z-40 bg-white shadow-lg border-t border-gray-200 py-2 sm:hidden">
           <nav className="flex justify-around items-center h-14 max-w-md mx-auto w-full">
             <Link
-              to="/dashboard"
+              to="/chat"
               className={`flex flex-col items-center text-xs font-medium px-2 py-1 rounded-md transition-colors ${
-                location.pathname === '/dashboard'
+                location.pathname === '/chat'
                   ? 'text-blue-600 bg-blue-50'
                   : 'text-gray-700 hover:text-blue-600'
               }`}
             >
-              <Home className="h-5 w-5 mb-1" />
-              <span>Dashboard</span>
+              <MessageSquare className="h-5 w-5 mb-1" />
+              <span>Chat</span>
             </Link>
             
             <Link
